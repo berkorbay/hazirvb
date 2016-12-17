@@ -1,0 +1,19 @@
+---
+title: "R ile Hazır Veri Bilimicisi"
+author: Berk Orbay
+date: Dec 17, 2016
+header-includes:
+    - \usepackage{amsmath}
+    - \usepackage{tikz}
+    - \usetikzlibrary{matrix,fit,backgrounds}
+output:
+  html_document:
+    toc: true
+  pdf_document:
+    toc: true
+    toc_depth: 3
+---
+
+#Özet
+
+Bu dökümanın amacı en azından temel bilgisayar kabiliyetlerine^[Temel bilgisayar kabiliyetleri = Bilgisayarı açıp/kapama, internete girebilme ve program yükleyebilme. Bir miktar İngilizce de faydalı olur.] sahip olan kişileri olabilecek en hızlı bir şekilde R ile veri analizinde başlangıç seviyesine getirebilmektir.

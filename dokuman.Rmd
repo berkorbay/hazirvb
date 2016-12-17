@@ -1,7 +1,7 @@
 ---
-title: "R ile Hazır Veri Bilimicisi"
+title: "R ile Hazır Veri Bilimcisi"
 author: Berk Orbay
-date: Dec 17, 2016
+date: 17 Aralık 2016
 header-includes:
     - \usepackage{amsmath}
     - \usepackage{tikz}
@@ -14,6 +14,308 @@ output:
     toc_depth: 3
 ---
 
-#Özet
+# Özet
 
-Bu dökümanın amacı en azından temel bilgisayar kabiliyetlerine^[Temel bilgisayar kabiliyetleri = Bilgisayarı açıp/kapama, internete girebilme ve program yükleyebilme. Bir miktar İngilizce de faydalı olur.] sahip olan kişileri olabilecek en hızlı bir şekilde R ile veri analizinde başlangıç seviyesine getirebilmektir.
+Bu dökümanın amacı en azından temel bilgisayar kabiliyetlerine^[Temel bilgisayar kabiliyetleri = Bilgisayarı açıp/kapama, internete girebilme ve program yükleyebilme. Bir miktar İngilizce de faydalı olur.] sahip olan kişileri olabilecek en hızlı bir şekilde R ile veri analizinde bir şeyler oluşturabilecek seviyeye getirebilmektir.
+
+Bu amaca ulaşabilmek için kurulumu minimal düzeyde tutmaya çalıştım. R, RStudio ve analizlerin R içerisinden raporlanabilmesi için (diğer bir deyişle RMarkdown kullanabilmek için) Pandoc kurulumlarını önereceğim. Analizleri yapmak için aslen sadece R yeterli olsa da RStudio kod yazmayı kolaylaştırmak için; RMarkdown da bir başka zorlu süreç olan analizleri raporlayabilmek için önemli unsurlar.
+
+Bu kısa çalışmada çok spesifik bir veri seti üzerinde işler yapacağız; sandık bazında genel seçim verileri. İki adet veri setimiz bulunuyor: 7 Haziran 2015 ve 1 Kasım 2015 Türkiye Milletvekili Seçimi sandık bazında seçim sonuçları. Bu veri setlerini ise GitHub üzerinden oluşturduğum `secimler` paketinden alacağız.
+
+Kullanacağımız yöntem ise benzersiz. R'ın temellerini veya adım adım kullanımını atlayarak doğrudan basit analizler için ihtiyacımız olan en rahat araçlara yöneleceğiz. Bu araçlar `tidyverse` adlı bir paketin içinde yer alan paketler. Kullanacağımız başlıca paketler ise `dplyr` (veri manipülasyonu için) ve `ggplot2` (grafikler için).
+
+Bunu güzel bir diziyi izlemeye sıkıcı ilk iki sezonunu atlayarak üçüncü sezonundan başlamakla karşılaştırabiliriz. Temel fonksiyonlara ihtiyaç duyduğumuzda flashbackler yaşayacağız ve olay örgüsünün geçmişini ve karakter gelişimini görmek için ilk iki sezonu izlememiz gerekebilir ama keyif almak için üçüncü sezondan başlamanın hiçbir zararı yok. Zira R, 3. sezondan sonra güzelleşen bir programlama dili.
+
+Sorunuz yoksa başlıyoruz. Varsa, [bana](https://www.linkedin.com/in/berkorbay) yazın.
+
+# Kurulum Hazırlığı
+
+Üç program kurmamız gerekiyor.
+
++ Bunlardan ilki R'ın kendisi. [Buraya tıklayarak](https://cran.r-project.org/) en son versiyonu indirebilir ve kurabilirsiniz.
+
++ İkinci kuracağımız program ise RStudio. Kodları kolayca kurmak ve tek ortamda çalıştırmak için kullanacağız. [Buraya tıklayarak](http://pandoc.org/installing.html) indirebilir ve kurabilirsiniz.
+
++ Üçüncü olarak ise pandoc'u kuracağız. Pandoc özel bir formatta yazdığımız kod ve raporları pdf, docx ve html gibi genel kullanım formatlarına çevirmemize yardımcı oluyor. Bu programa raporlama kısmına kadar ihtiyaç duymayacağız o yüzden ilk anda kurmanıza gerek yok. [Buraya tıklayarak](http://pandoc.org/installing.html) indirebilir ve kurabilirsiniz.
+
+# İlk Adımlar
+
+Aşağıdaki kodları çalıştırmak için RStudio'nun konsoluna kopyala yapıştır yapmamız gerekiyor. Veya RStudio'da açtığınız yeni bir R dosyasına kopyala yapıştır yapıp satırları oradan da çalıştırabilirsiniz. (Ufak not `#` ile başlayan satırlar comment ya da yorum olarak adlandırılırlar. R bunları çalıştırmaz. Genelde yorumlara ilgili kodların ne işe yaradığına dair açıklayıcı notlar yazılır.)
+
+```{r}
+#Bu kodlar sadece bazı genel ayarları içeriyor
+#Veri alırken string formatındaki sütunları faktör gibi görme
+options(stringsAsFactors=FALSE)
+#Paketleri bu adresten yükle
+options(repos="http://cran.rstudio.com/")
+#Veri tablolarının bütün sütunlarını göster
+options(dplyr.width = Inf)
+#Ondalık veri gösterme formatı ile ilgili bir ayar
+options(scipen = 7)
+```
+
+Sırada ihtiyaç duyduğumuz paketleri yükleyeceğiz.
+
+```{r, eval=FALSE}
+#devtools R'ın kendi paket sistemi dışında paketleri kurabilmemize yardımcı olacak.
+install.packages("devtools")
+#tidyverse R içerisinde kullanacağımız özel komutları içeren paketler grubu
+install.packages("tidyverse")
+#secimler paketini R'ın kendi sistemi içerisinden değil GitHub denilen bir kod depo
+#sistemi üzerinden yükleyeceğiz.
+#Bu paket kullanacağımız verileri içeriyor
+devtools::install_github("berkorbay/secimler")
+```
+
+Yukarıdaki `install.packages` kodu bir paket deposundan ilgili paketleri indirmeyi sağlamaktadır. `install_github` ise GitHub'da bulunan paketi indirmeye yarıyor. Komutun `devtools::install_github` şeklinde yazılmasının nedeni ise `devtools` paketini "yüklemeye" gerek kalmadan R'a spesifik olarak o paketin içinden bir komutu çağırmasını istememizdir.
+
+Paketleri indirmek ile çalıştırmak (veya yüklemek) farklı fonksiyonlar gerektirmektedir. Yüklemek için `library` komutunu kullanıyoruz.
+
+```{r}
+#Şimdi indirdiğimiz paketleri yükleyelim
+library(tidyverse)
+library(secimler)
+```
+
+Hazırlıklarımız tamamlandı. Uçuşa geçebiliriz :)
+
+#R ve dplyr ile Veri Analizi
+
+Önce verilerimizi tanıyalım. `secimler` paketi iki veri seti içeriyor. Bunlar, 7 Haziran 2015 genel seçim sonuçlarını içeren `secim150607g` isimli veri seti ve 1 Kasım 2015 genel seçim sonuçlarını içeren `secim151101g` isimli veri setidir. Veri setlerinin ikisi de format olarak aynıdır, ancak doğal olarak içerikleri farklıdır. Haziran sonuçlarına bir göz atalım.
+
+```{r}
+head(secim150607g)
+glimpse(secim150607g)
+```
+
+Seçim verileri `data frame` denilen bir formatın türevi olan `tbl_df` veya ``tibble` formatı ile tutulmaktadırlar (veri yapıları temel R konuları içerisinde yer alıyor şimdilik çok önemli değil direk data frame diyebiliriz). `head` komutu bir veri setinin ilk birkaç satırını gösterir. `glimpse` komutu ise bir data frame'in sütunlarını listeler, türlerini belirtir ve birkaç veri örneği verir.
+
+Eğer veri setleri veya komutlar hakkında detaylı bilgi almak istiyorsanız konsolda ilgili komutun başına `?` yazıp çalıştırırsanız yardım dosyaları çıkacaktır. Mesela `?secim150607g` veya `?head` ilgili konularda yardım dosyalarını açar. Yardım dosyaları genellikle R kodlarının işlevlerini anlamada ve hatırlamada çok yardımcı olurlar. Bu veri setlerinde her bir satır ya bir sandığın bilgisini ya da ilgili bölgenin toplam verilerini içerirler.
+
+R'da bir değişkene atama `<-` veya `=` ile yapılır. Mesela x değişkenine 5 değerini atamak isterseniz `x<-5` yazarsınız. Biz de 7 Haziran seçim veri setini `secim_data` değişkenine atayalım.
+
+```{r}
+secim_data <- secim150607g
+head(secim_data)
+```
+
+İlk komutlarınızı çok güzel çalıştırdınız, tebrik ederim! Şimdi biraz da işlem yapalım. dplyr paketinde hayatınızı çok kolaylaştıracak basit 5-6 komut ve türevleri bulunuyor. Bunların teker teker üzerinden geçeceğiz ve bitirdiğimizde R'ı neredeyse Excel işlevinde kullanabileceksiniz.
+
+## dplyr::filter
+
+`filter`, adından da kolaylıkla anlaşılabileceği gibi veriyi belli kriterlere göre filtrelemeye yarıyor. Örneğin bizim seçim veri setimizden sadece Uşak iline ait verileri almak istediğimizi düşünelim. Ayrıca seçim verisi satırladında bazı satırlar il/ilçe/köy toplamlarını da içeriyor ve sadece düz sandık verisini istiyoruz. O zaman aşağıdaki gibi bir kod yazıyoruz.
+
+```{r}
+#Yeni değişkenimizin adı usak_data olsun
+usak_data <-
+#secim_data değişkenini al
+secim_data %>%
+#filtrele
+#il Uşak olsun, toplam değerlerini de at
+filter(il == "Uşak" & cevre_turu != "Toplam")
+
+#Bana veriyi göster
+head(usak_data)
+```
+
+Size ilk başta yabancı gelebilecek ama alıştıktan sonra büyük rahatlık sağlayacak ilk unsur `%>%`. Bu ifadenin adı "pipe operator" ama dilimize boru operatörü yerine zincir operatörü demek daha hoş geldiği için zincir operatörü diyeceğim. Bu operatör dplyr komutlarını arka arkaya değişken adını tekrar yazmamıza gerek kalmayacak şekilde sıralamamızı ve dolayısıyla daha okunabilir bir kod yazmamızı sağlıyor. Kısaca aynı değişken üzerinde yapılacak işlem sırasını düzenliyor.
+
+`==` ve `!=` operatörleri ise eşittir ve eşit değildir kontrollerini yapıyorlar. Bunların dışında büyüktür ve büyük eşittiri içeren `>` ve `>=`; veya küçüktür ve küçük eşittiri içeren operatörler olan `<` ve `<=` de kullanilabilirler. `&` operatörü ise koşulları birbirlerine bağlamaya yarayan "ve" anlamına gelen operatör. Veya anlamına gelen operatörün sembolü ise `|` şeklinde (l harfi değil klavyedeki uzun dik çizgi). Yukarıdaki örnekte satırların il değeri Uşak olsun VE cevre_turu değeri Toplam olmasın demiştik, böylece R sadece iki koşulu birlikte sağlayan satırları bize vermiş oldu. (Bu konseptlere çok aşina değilseniz birkaç egzersiz yapabilirsiniz.)
+
+Eğer zincir operatörü veya dplyr olmasaydı aynı sonucu şu şekilde alabilecektik. Aynı değişken ismini kaç kez tekrar ettiğimize dikkat edin. Zincir operatörünün değeri komut sayısı arttıkça daha da çok belli olacak.
+
+```{r,eval=FALSE}
+head(secim_data[secim_data$il == "Uşak" & secim_data$cevre_turu != "Toplam",])
+```
+
+dplyr'ın ilk komutunu tamamladık. Sırada select ve türevi rename bulunuyor.
+
+Not: Uşak'ı seçme sebeplerim arasında hem ilçeleri hem de köy/beldeleri olması, yeterince küçük ve yeterince büyük olması yatıyor. Ha bir de zamanında CHP Uşak milletvekili danışmanıydım :) Osman Coşkunoğlu'nun yazılarını mutlaka okumalısınız. Bilişim, teknoloji, son zamanlarda endüstri 4.0 ve ilgili politikalar hakkında yazıyor ([tıklayın](http://coskunoglu.org/)). Ayrıca en sevdiğim köy ismi (Gökçukur) de Uşak'ta.
+
+## dplyr::select/rename
+
+`select` anlatması en kolay komutlardan bir tanesi. Sadece istediğiniz sütunları seçip diğer sütunları atmanızı sağlıyor. Örneğin diyelim oy verileri değil sadece sandık verilerini (il, ilçe, seçim çevresi, çevre türü, sandık no, kayıtlı seçmen ve geçerli oy) istiyoruz. Hepsini `select` komutunun içine yazarak sadece o sütunları alabiliyoruz.
+
+```{r}
+usak_data %>%
+select(il,ilce,cevre,cevre_turu,sandik,kayitli_secmen,oy_kullanan) %>%
+slice(1)
+```
+
+Ufak bir not. Burada kullandığım `slice` komutu da dplyr'a ait. Satır numarasını yazarak istediğim satırları getirmemi sağlıyor. `slice(1)` demek birinci satırı getir demektir, `slice(1:5)` yazsaydım 1 ile 5. satırlar arasını getir demekti (Evet `:` özel bir ifade.)
+
+Eğer seçeceğimiz sütunlar arasında seçmeyeceğimiz bir sütun yoksa aynı ifadeyi şu şekilde de yazabilirdik.
+
+```{r}
+usak_data %>%
+select(il:oy_kullanan) %>%
+slice(1)
+```
+
+Yukarıda `il` sütunundan `oy_kullanan` sütununa kadar bütün sütunları getir anlamına gelen `:` operatörü bulunuyor. Sütunları seçerken isimlerini de değiştirebiliyorsunuz. Mesela `sandik` yerine `sandik_no` yazalim.
+
+```{r}
+usak_data %>%
+select(il,ilce,cevre,cevre_turu,sandik_no=sandik,kayitli_secmen,oy_kullanan) %>%
+slice(1)
+```
+
+Eğer tek istediğimiz sütun ismi değiştirmekse ve bazı sütunları veri setinden atmak istemiyorsak `rename` kullanabiliriz.
+
+```{r}
+usak_data %>%
+rename(sandik_no=sandik) %>%
+slice(1)
+```
+
+Tebrikler bir `dplyr` komutu daha tamamlandı. Sırada `arrange` var.
+
+## dplyr::arrange
+
+`arrange` komutunun tek yaptığı şey sıralamak. Sanırım daha basit anlatılamaz. Sıralamak istediğiniz sütunu/sütunları yazıyorsunuz. Normal davranışı küçükten büyüğe sıralama olsa da eğer sütunu `desc()` komutunun içerisine alırsanız büyükten küçüğe sıralama yaparsınız. Örneğin AK Parti'nin en çok oy aldığı 5 sandığı görelim.
+
+```{r}
+usak_data %>%
+arrange(desc(ak_parti)) %>%
+slice(1:5)
+```
+
+`arrange` içerisine birden çok sütun ismi yazabilirsiniz. Önce ilkine göre sıralama yapar, daha sonra ilk sütundaki eşit değerler arasında ikincisine göre, sonra üçüncüsü derken son sütuna kadar aynı şekilde devam eder.
+
+Takır takır bitiriyorsunuz komutları, sırada `distinct` var.
+
+## dplyr::distinct
+
+`distinct` içerisinde belirtilen sütun veya sütunlar arasından tekrar eden satırları siler. Örneğin `distinct(ilce)` yazdığımızda eğer bir ilçenin ismi birden fazla satırda geçiyorsa ikinci ve sonraki bütün satırları siler. Örnek kullanım olarak her ilçede AK Parti'ye en çok oy atan sandıkları bulalım.
+
+```{r}
+usak_data %>%
+arrange(desc(ak_parti)) %>%
+distinct(ilce,.keep_all=TRUE)
+```
+
+Yukarıdaki kodda `.keep_all=TRUE` parametresi `distinct` komutunu çalıştırdıktan sonra, R'ın bütün sütunları mı yoksa sadece distinct'e konu olan sütunu mu tutacağını belirtir. Parametreyi `FALSE` değerine çevirip aradaki farka bakabilirsiniz.
+
+Eğer distinct'e birden fazla sütun yazsaydık sadece distincte konu olan her sütunu aynı olan satırları atacaktı. Örneğin Uşak'ın ilçelerindeki mahalle ve köy isimlerini türleriyle istediğimizi düşünelim.
+
+```{r}
+usak_data %>%
+distinct(ilce,cevre,cevre_turu) %>%
+slice(1:5)
+```
+
+Tebrikler bu da bitti! Ancak prenses başka kalede. Sırada `mutate` ve `transmute` fonksiyonları bulunuyor.
+
+## dplyr::mutate/transmute
+
+Paketin belki de en önemli fonksiyonlarından biri `mutate`. `mutate` sayesinde sütunların üzerinde işlemler yapabiliyoruz. Örneğin sandıkların seçime katılım oranlarını bulalım. Katılım oranı oy kullanan seçmen sayısının sandıktaki kayıtlı seçmen sayısına bölümü ile bulunabilir.
+
+```{r}
+usak_data %>%
+#yüzdesel değer vermek için oranı 100 ile çarpıp sadece 2 ondalık değeri alıyoruz
+mutate(katilim_orani=round(100*(oy_kullanan/kayitli_secmen),2)) %>%
+#select ile sadece istediğimiz sütunları da alalım
+select(il:sandik,katilim_orani) %>%
+slice(1:5)
+```
+
+Yukarıda gördüğünüz gibi `katilim_orani` diye yeni bir sütun yaratıp ilgili sütunları seçtik. `round` fonksiyonu sayıları yuvarlamaya yarıyor ve fonksiyonun içinde belirtilen diğer değer olan 2 de ondalıktan sonra kaç basamak ilerleyeceğini gösteriyor. Aynı mutate fonksiyonuna birden fazla işlem yazabiliyorsunuz ve var olan sütunların üzerine yazabiliyorsunuz. Dört büyük partinin oy oranlarına bakalım.
+
+```{r}
+usak_data %>%
+#yüzdesel değer vermek için oranı 100 ile çarpıp sadece 2 ondalık değeri alıyoruz
+mutate(katilim_orani=round(100*(oy_kullanan/kayitli_secmen),2),
+        ak_parti=round(100*(ak_parti/gecerli_oy),2),
+        chp=round(100*(chp/gecerli_oy),2),
+        mhp=round(100*(mhp/gecerli_oy),2),
+        hdp=round(100*(hdp/gecerli_oy),2)) %>%
+#select ile sadece istediğimiz sütunları da alalım
+select(il:sandik,katilim_orani,ak_parti:hdp) %>%
+slice(1:5)
+```
+
+`transmute` fonksiyonu temelde `mutate` ile aynı. Tek farkı, fonksiyon içerisinde yer alan sütunların dışındaki diğer sütunları veri setinden kaldırıyor. Bir nevi `mutate` içerisinde `select` çalıştırıyor.
+
+```{r}
+usak_data %>%
+#yüzdesel değer vermek için oranı 100 ile çarpıp sadece 2 ondalık değeri alıyoruz
+transmute(sandik,katilim_orani=round(100*(oy_kullanan/kayitli_secmen),2)) %>%
+slice(1:5)
+```
+
+Aslında bu biraz daha ileri bir konu ama şunu soruyor olabilirsiniz: "Ben bütün partilerin oy oranlarını istiyorsam hepsini elimle tek tek mi yazacağım?" Hayır, gerek yok! Bunun için `mutate_each` var. Açıklamayacağım ama kodunu yazacağım.
+
+```{r}
+usak_data %>%
+mutate_each(funs(round(100*(./kayitli_secmen),2)),ak_parti:bagimsiz) %>%
+slice(1:5)
+```
+
+`mutate` ile ilgili derya deniz iş yapılabilir. Son olarak AK Parti, CHP, MHP ve HDP hariç diğer bütün sütunları tek Diğer sütunu altında toplayalım.
+
+```{r}
+usak_data<-
+usak_data %>%
+mutate(diger=rowSums(.[13:29])) %>%
+select(il:hdp,diger)
+
+#Verimizin yeni hali
+head(usak_data)
+```
+
+`rowSums` komutu satır toplamlarını veren bir temel R komutudur ancak `dplyr` altında biraz farklı çalışmaktadır. İleri R konularından biri daha.
+
+Bu kallavi kısmı da bitirdiğimize göre giriş seviyesindeki komutların sonuncu seti olan `group_by` ve `summarise` fonksiyonlarına geçebiliriz.
+
+## dplyr::group_by/summarise
+
+Eğer veriniz üzerinden daha toplu analizler yapmak istiyorsanız `group_by` gruplama fonksiyonunu `summarise` ise yapmak istediğiniz analizleri içeren fonksiyonu ifade ediyor. Örneğin elimizdeki sandık bazındaki veriyi ilçe bazında birleştirmek istiyoruz diyelim. Yapmak istediğimiz analizler ise her ilçedeki sandık sayıları, toplam seçmen sayısı, bir sandıktaki ortalama seçmen sayısı, geçerli oyların seçmen sayısına oranı ve parti oy oranları olsun.
+
+```{r}
+usak_ilce_ozet<-
+usak_data %>%
+#ilçe bazında grupla
+group_by(ilce) %>%
+summarise(
+    #sandık sayılarını bul
+    sandik_sayisi=n(),
+    #seçmen sayıları
+    toplam_secmen_sayisi=sum(kayitli_secmen),
+    #ortalama seçmen sayısı
+    ortalama_secmen_sayisi=mean(kayitli_secmen),
+    #geçerli oy oranı
+    gecerli_oy_orani=sum(gecerli_oy)/sum(kayitli_secmen),
+    #parti oy oranları
+    ak_parti=round(100*sum(ak_parti)/sum(gecerli_oy),2),
+    chp=round(100*sum(chp)/sum(gecerli_oy),2),
+    mhp=round(100*sum(mhp)/sum(gecerli_oy),2),
+    hdp=round(100*sum(hdp)/sum(gecerli_oy),2),
+    diger=round(100*sum(diger)/sum(gecerli_oy),2)
+)
+
+usak_ilce_ozet %>%
+print(n=Inf)
+```
+
+`summarise` fonksiyonu bir miktar Excel'de pivot tablo yapmaya benziyor. En büyük farklı daha net ve daha rahat bir şekilde yapılabilmesi. Veriler mümkün olan en granüler haliyle tutulurken bu verilerin doğru bir şekilde birleştirilip analiz edilebilmeleri büyük önem taşıyor.
+
+En son kodda `print(n=Inf)` gibi bir ifade kullandık. `print` R'da bir şeyi ekrana yazmak için kullanılan bir fonksiyon olmasına karşılık `dplyr` bağlamında gösterilecek satır sayısını (n) ifade ediyor. `Inf` değeri ise sonsuz anlamına geliyor (buradaki anlamıyla bütün satırları göster). Bunu yazmamızın sebebi `dplyr` tablo gösterimlerinde her zaman bütün satırları yayınlamıyor, burada bütün satırları yayınlamaya zorluyoruz.
+
+#Sonuç
+
+Bu döküman geliştirilmeye devam edecektir. Şimdilik `dplyr` temel fonksiyonları ele alınmış, sırada görselleştirmenin temelleri vardır.
+
+`dplyr`hakkında daha fazla kaynağa aşağıdaki linklerden ulaşabilirsiniz. Ne yazık ki bütün kaynaklar İngilizce (iyi bilmiyorsanız pratik yapmak için size daha çok fırsat).
+
++ [dplyr Cheatsheet](https://www.rstudio.com/wp-content/uploads/2015/02/data-wrangling-cheatsheet.pdf): Bir iki sayfalık bu dosyada `dplyr` ile ilgili pek çok fonksiyon çok net bir şekilde anlatılmış. Başucu eseri
++ [R for Data Science](http://r4ds.had.co.nz/): Paketin yazarından veri bilimi kitabı.
++ [Introduction to dplyr](https://cran.rstudio.com/web/packages/dplyr/vignettes/introduction.html): Paketin kendi örneklerinden biri.
++ [DataCamp dplyr](https://campus.datacamp.com/courses/dplyr-data-manipulation-r-tutorial): Datacamp'in dplyr dersi. (ücretli olabilir)
++ [Data Processing with dplyr & tidyr](https://rpubs.com/bradleyboehmke/data_wrangling): Başka bir döküman.
+
+<!--
+##Bonus: Neden Hazır Veri Bilimcisi
+
+Bunun rezil sebebini söylemeden geçemeyeceğim. Bu dökümanı yazmaktaki amacım zaman zaman dillendirdiğim `dplyr`, `ggplot2` ve çevre paketleriyle herhangi birini 2 saat içerisinde sıfırdan "veri bilimcisi" yapabileceğim iddiasıydı. Tabi ki istatistiksel, matematiksel kısmından bahsetmiyorum ama giriş analist seviyesine gayet hızlı yükseltebilirim diye iddia ediyordum. Sonra bu projeye bir isim ararken merhum David Bowie'nin "I'm an instant star, just add water and stir." (Ben hazır bir yıldızım, su ekleyip karıştırın.) sözü aklıma geldi. Projenin ismini de Instant Data Scientist koymaya karar verdim ama güzelim Türkçe'ye çevirisi Hazır Veri Bilimcisi oldu.
+
+-->
